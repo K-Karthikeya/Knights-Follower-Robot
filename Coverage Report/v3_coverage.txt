@@ -1,0 +1,16 @@
+Recursive Coverage Report Summary Data by instance
+
+=================================================================================
+=== Instance: /KnightsTour_tb_v3/iDUT
+=== Design Unit: work.KnightsTour
+=================================================================================
+    Enabled Coverage              Bins      Hits    Misses  Coverage
+    ----------------              ----      ----    ------  --------
+    Branches                       425       312       113    73.41%
+    Conditions                      59        27        32    45.76%
+    Statements                     593       445       148    75.04%
+    Toggles                       2714      1881       833    69.30%
+
+
+Total Coverage By Instance (filtered view): 65.88%
+
