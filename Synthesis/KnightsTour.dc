@@ -1,0 +1,147 @@
+## To run this dc_shell script ##############
+## In dc_shell> source <filename>.dc
+
+#############################################
+## Reading files in systemverilog ###########
+#############################################
+
+# read_file -format verilog { <filenames.v> }
+read_file -format sverilog { KnightsTour.sv reset_synch.sv UART_Wrapper.sv command_prc.sv TourLogic.sv TourCmd.sv inert_intf.sv PID.sv Mtrdrv.sv IR_intf.sv sponge.sv inertial_integrator.sv PWM11.sv SPI_mnrch.sv UART.v UART_rx.sv UART_tx.sv }
+
+##############################################
+## Setting the current design to top level ###
+##############################################
+
+set current_design KnightsTour
+link
+
+##################################################
+## Configuring and constraining the clk ##########
+##################################################
+
+# create_clock -name "<name of clock>" -period <timeperiod> -waveform {<turn off time, turn_on_time>} {port_name}
+create_clock -name "clk" -period 3 -waveform {0 1.5} {clk}
+
+###################################################
+## To prevent the clk from being buffered #########
+###################################################
+
+set_dont_touch_network [find port clk]
+set_dont_touch_network [get_net iRST/rst_n]
+## [find port <port_name> identifies a particular signal in design]
+
+
+##############################################
+## Identifying all input ports ###############
+##############################################
+
+set prim_inputs [remove_from_collection [all_inputs] [find port {clk rst_n} ]]
+## prim_input -> variable name that holds all the input signals
+## remove_from_collection returns the list of all input signals except clk
+
+##############################################
+## Setting input delay #######################
+##############################################
+
+set_input_delay -clock clk 0.4 $prim_inputs
+## Setting an input delay of 0.4 wrt clk
+
+##############################################
+## Setting driving cell ######################
+##############################################
+
+set_driving_cell -lib_cell NAND2X2_LVT -library saed32lvt_tt0p85v25c $prim_inputs
+## This sets the input driving strength equivalent to a 2-input NAND gate from sead321vt_tt085v25c library
+
+##############################################
+## Setting drive strength for rst_n ##########
+##############################################
+
+# set_drive 0.0001 rst_n ## default value is Mohm
+## This sets rst_n drive strength to be so strong it doesnt need a buffer
+
+##############################################
+## Setting output delay ######################
+##############################################
+
+set_output_delay -clock clk 0.4 [all_outputs]
+## This sets and output delay of 0.4 wrt to clk
+
+##############################################
+## Setting output load capacitance ###########
+##############################################
+
+set_load 0.1 [all_outputs] 
+## default unit for cap is pf
+
+##############################################
+## Setting parasitic routing capacitance #####
+##############################################
+
+set_wire_load_model -name 16000 -library saed32lvt_tt0p85v25c
+## This sets the capacitance b/w nets to be based on the wire model of a particular library
+
+##############################################
+## Setting max transition time ###############
+##############################################
+
+set_max_transition 0.15 [current_design]
+## This sets the max transition time (0 -> 1 or 1 -> 0)
+
+##############################################
+## Setting Uncertainty ######################
+##############################################
+
+set_clock_uncertainty 0.15 clk
+## This sets a clk Uncertainty of 0.15ns, meaning a clk signal may arrive early or late by this value
+
+##############################################
+## Fixing Hold Time Violations ###############
+##############################################
+
+set_fix_hold clk
+
+##############################################
+## Compiling the RTL code (Synthesizing) #####
+##############################################
+
+compile -map_effort high
+
+######################################################
+## Flattening the design to remove any heirarchy #####
+######################################################
+
+ungroup -all -flatten
+
+##############################################
+## Compiling the RTL code (Synthesizing) #####
+##############################################
+
+compile -map_effort high
+## Compiling again after flattening
+
+##################################################
+## Writing the generated netlist to a .vg file ###
+##################################################
+
+write -format verilog KnightsTour -output KnightsTour.vg
+
+##################################################
+## Writing the SDC file for IC Compiler  #########
+##################################################
+
+write_sdc KnightsTour.sdc
+
+##############################################
+## Reporting Delays - Min and Max ############
+##############################################
+
+report_timing -delay min > KnightsTour_minDelay.txt
+report_timing -delay max > KnightsTour_maxDelay.txt
+
+##############################################
+## Reporting Area ############################
+##############################################
+
+report_area > KnightsTour_area_report.txt
+
